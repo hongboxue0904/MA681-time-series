@@ -1,0 +1,222 @@
+---
+title: "Time Series Notes"
+output: pdf_document
+---
+
+The term "time series" is used to refer to time series data sets and to the processes by which time series data is assumed to be produced.
+
+Time series modeling begins with time series data. Models are built to  
+
+* Describe the data  
+* Adjust the data, e.g., remove seasonal components, so that the the long run characteristics of the data can be analyzed and interpreted  
+* Make forecasts for the series  
+* understand the underlying process which is producing the data.  
+
+
+##Time series processes
+
+$\{X_t\} t=0, \pm1, ...$ where  $\mu_x(t)=E(X_t)$ and $\gamma_x(r,s)=Cov(X_r, X_s)=E[(X_r-\mu_x(r))(X_s-\mu_x(s))])$.
+
+
+The underlying assumption of the analysis is that there is a time-independent process at work that is producing the data.  
+
+In other words(Strict Stationarity): $(X_1, ..., X_n) \sim (X_{1+h}, ... , X_{n+h})$
+
+
+In practice, we focus on the first two moments and define a weaker form of stationarity for $\{X_t\}$.
+
+$\mu_x(t) \amalg t$  and $\gamma_x(t+h, t) \amalg t$ for each $h$
+
+so we simplify to show covariance as a function of lag:  $\gamma_x(h)=Cov(X_t+h, X_t)$
+
+and normalize with the variance $\gamma_x(0)$ to produce the ACF
+
+$$\rho_x(h) \equiv \frac{\gamma_x(h)}{\gamma_x(0)}$$
+
+
+
+
+
+iid noise
+White Noide
+Random Walk
+
+
+MA(1)
+
+$X_t = Z_t + \theta Z_{t-1}, t=0, \pm1, ...$
+
+where $\{Z_t\}~WN(0,\sigma^2)$ and $\theta$ is real.
+
+$$E\left [ X_t \right ]=0$$
+
+$$E\left [ X_{t}^{2} \right ]=\sigma^2(1+\theta^2))$$
+
+
+$$\gamma_x(t+h, t)=\left\{\begin{matrix}
+\sigma^2 (1+\theta^2) & \mathrm{if}\  h=0 \\ 
+\sigma^2 \theta & \mathrm{if}\ h= \pm1 \\ 
+0 & \mathrm{if}\ \left | h \right |>1
+\end{matrix}\right.$$
+
+$$\rho_x(h)=\left\{\begin{matrix}
+1 & \mathrm{if}\  h=0 \\ 
+\theta / (1+\theta^2) & \mathrm{if}\ h= \pm1 \\ 
+0 & \mathrm{if}\ \left | h \right |>1
+\end{matrix}\right.$$
+
+```{r}
+theta <- 1
+z <- rnorm(100)
+z.t1<-z[-1]
+z<-z[1:length(z.t1)]
+x<-z+theta*z.t1
+plot(x,main="MA(1) Process")
+qqnorm(x)
+acf(x)
+```
+
+
+AR(1)
+
+
+
+$X_t= \phi X_{t-1}+Z_t$
+
+$\left | \phi  \right |<1$
+
+
+$\rho_x(h)=\frac{\gamma_x(h)}{\gamma_x(0)}=\phi^{\left | h \right |},  h=0, \pm1, ...$
+
+
+```{r}
+phi <- .8
+
+x[1:100] <- 0
+
+for(i in 2:100){x[i]=phi*x[i-1]+rnorm(1)}
+
+plot(x)
+qqnorm(x)
+acf(x)
+```
+
+
+
+
+
+
+
+
+
+##A First approach to time series modeling
+
+One intuitively appealing approach begins by simply observing a time series to be modeled.  For example, look at Australian Wine Sales.
+
+```{r echo=FALSE}
+library(itsmr)
+wine <- scan("wine.dat")
+wine <- as.ts(wine)
+
+yr <- seq(as.Date("1980/1/1"),by = "months",length=length(wine))
+plot(yr,wine, type="l",pch=20,main = "Australian Red Wine" , ylab="liters",xlab="Years" )
+```
+
+In this plot, the trend and seasonality in the data are clear.  
+
+Out initial approach is view the time series as the sum of three additive components:
+
+$\mathbf{series}_t = \mathbf{trend}_t + \mathbf{seasonality}_t + \mathbf{noise}_t$
+
+in addition, however, you also see A plot of the data shows a clear trend.
+
+
+trend
+seasonality
+
+Sometimes you need to transform a time series
+
+identify and structural components -- trend and seasonality
+
+substracting these components from the series
+
+leaving noise which is then modeled.
+
+
+
+```{r}
+### transformation
+wine.t <- log(wine)
+```
+
+```{r echo=FALSE}
+# par(mfcol=c(1,2),cex.main=.5,lheight=.5)
+# plot(yr,wine, type="l",pch=20,main = "Australian Red Wine (log transformed" , ylab="log(liters)" ,xlab="Years")
+
+plot(yr,wine.t, type="l",pch=20,main = "Australian Red Wine (log transformed" , ylab="feet", xlab="Years" )
+
+```
+
+
+
+
+
+
+
+
+Lake Huron Data
+```{r}
+lake <- scan("lake.dat")
+lake <- as.ts(lake)
+yr <- seq(as.Date("1875/1/1"),by = "months",length=length(lake))
+plot(yr,lake, type="l",pch=20,main = "Lake Huron Water Level" , ylab="feet" )
+acf=acf(lake)
+```
+
+First build a simple linear model to remove the trend.
+
+```{r warning=FALSE, echo=FALSE}
+lake1 <- lake[-1]
+
+m <- lake[1:(length(lake1))]
+
+out <- lm(lake1 ~ m)
+print(out)
+resid <- resid(out)
+plot(resid)
+acf(resid)
+```
+
+
+##Strikes Series
+
+```{r}
+strikes <- scan("strikes.dat")
+strikes <- as.ts(strikes)
+# use class and structure to tell them apart
+yr <- seq(as.Date("1951/1/1"),by = "years",length=length(strikes))
+plot(yr,strikes, type="l",pch=20,main = "Strikes in the U.S.A., 1951 -1980" )
+acf=acf(strikes)
+```
+
+
+
+
+```{r}
+
+rr <- smooth.ma(strikes,2)
+
+plot(yr,strikes, type="l",pch=20,main = "Strikes in the U.S.A., 1951 -1980" )
+plot(yr,rr, type="l",pch=20,main = "Strikes in the U.S.A., 1951 -1980" )
+rr1 <- strikes - rr
+plot(yr,rr1, type="l",pch=20,main = "Strikes in the U.S.A., 1951 -1980" )
+acf(rr1)
+```
+
+
+
+
+
+
+
+
