@@ -3,8 +3,6 @@ Time Series Assignment
 
 Read chapter 2 in A Little Book of R For Time Series, doing the examples that are used in the book as illustrations.
 
-Apply what you have learned to build time series models for the series wine.dat, strikes.dat, death.dat, and lake.dat. 
-
-The book and the series are in https://github.com/havilandw/MA681-time-series
+Apply what you have learned to build time series models for the series wine.dat, strikes.dat, death.dat, and lake.dat.
 
 You use what ever organization you want for this assignment, but I recommend making a markdown document.  You'll find an example in the github folder for this section of the course.

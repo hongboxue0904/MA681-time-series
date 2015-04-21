@@ -13,7 +13,9 @@ Time series modeling begins with time series data. Models are built to
 * understand the underlying process which is producing the data.  
 
 
-##Time series processes
+#Time series processes and measures
+
+##Stationarity, acvf, acf
 
 $\{X_t\} t=0, \pm1, ...$ where  $\mu_x(t)=E(X_t)$ and $\gamma_x(r,s)=Cov(X_r, X_s)=E[(X_r-\mu_x(r))(X_s-\mu_x(s))])$.
 
@@ -34,15 +36,21 @@ and normalize with the variance $\gamma_x(0)$ to produce the ACF
 $$\rho_x(h) \equiv \frac{\gamma_x(h)}{\gamma_x(0)}$$
 
 
+##Time Series Processes
+
+###Noise
 
 
+####iid noise
 
-iid noise
-White Noide
-Random Walk
+####White Noise
+
+####Random Walk
 
 
-MA(1)
+###Moving Average
+
+####MA(1)
 
 $X_t = Z_t + \theta Z_{t-1}, t=0, \pm1, ...$
 
@@ -76,10 +84,9 @@ qqnorm(x)
 acf(x)
 ```
 
+###Autoregressive
 
-AR(1)
-
-
+####AR(1)
 
 $X_t= \phi X_{t-1}+Z_t$
 
@@ -96,22 +103,200 @@ x[1:100] <- 0
 
 for(i in 2:100){x[i]=phi*x[i-1]+rnorm(1)}
 
-plot(x)
-qqnorm(x)
+# plot(x)
+# qqnorm(x)
 acf(x)
 ```
 
 
 
+#Decomposition: First approach to time series modeling
+
+One intuitively appealing approach begins by simply observing a time series to be modeled.  
+
+
+Out initial approach is view the time series as the sum of three additive components:
+
+$\mathbf{series}_t = \mathbf{trend}_t + \mathbf{seasonality}_t + \mathbf{noise}_t$
+
+
+Removing the trend and seasonality, the noise is left to be modelled and uses as the basis for forecasting.
+
+Note that the model is assumed to be additive.  When the data indicate non-additivity, the series can be transformed before analysis.  A multiplicative model, for example, can be log transformed.
+
+##Reading and prepping data
+
+Consider six series
+
+``` {r echo=FALSE}
+
+library(TTR)
+library(forecast)
+library(xts)
+library(zoo)
+
+plotForecastErrors<- function(forecasterrors)
+{
+  # make a histogram of the forecast errors:
+  mybinsize<-IQR(forecasterrors)/4
+  mysd<-sd(forecasterrors)
+  mymin<- min(forecasterrors)-mysd*5
+  mymax<- max(forecasterrors)+mysd*3
+  # generate normally distributed data with mean 0 and standard deviation mysd
+  mynorm<-rnorm(10000, mean=0, sd=mysd)
+  mymin2<- min(mynorm)
+  mymax2<- max(mynorm)
+  if (mymin2<mymin) { mymin<-mymin2 }
+  if (mymax2>mymax) { mymax<-mymax2 }
+  # make a red histogram of the forecast errors, with the normally distributed data overlaid:
+  mybins<- seq(mymin, mymax, mybinsize)
+  hist(forecasterrors, col="red", freq=FALSE, breaks=mybins)
+  
+  # freq=FALSE ensures the area under the histogram = 1
+  # generate normally distributed data with mean 0 and standard deviation mysd
+  myhist<-hist(mynorm, plot=FALSE, breaks=mybins)
+  # plot the normal curve as a blue line on top of the histogram of forecast errors:
+  points(myhist$mids, myhist$density, type="l", col="blue", lwd=2)
+}
+```
+
+
+
+
+```{r echo=FALSE}
+
+kings <- scan("http://robjhyndman.com/tsdldata/misc/kings.dat",skip=3)
+kingsts <- ts(kings)
+
+births <- scan("http://robjhyndman.com/tsdldata/data/nybirths.dat")
+birthsts <- ts(births, frequency=12, start=c(1946,1))
+
+souvenir <- scan("http://robjhyndman.com/tsdldata/data/fancy.dat")
+souvenirts <- ts(souvenir, frequency=12, start=c(1987,1))
+
+rain<- scan("http://robjhyndman.com/tsdldata/hurst/precip1.dat",skip=1)
+raints <-ts(rain,start=c(1813))
+
+skirts<- scan("http://robjhyndman.com/tsdldata/roberts/skirts.dat",skip=5)
+skirtsTS<-ts(skirts,start=c(1866))
+
+volcanodust<- scan("http://robjhyndman.com/tsdldata/annual/dvi.dat", skip=1)
+volcanodustTS<-ts(volcanodust,start=c(1500))
+
+```
+
+
+\newpage
+
+
+```{r echo=FALSE}
+par(mfrow=c(3,2))
+
+plot(kingsts, main="Age of Death of Successive Kings of England", 
+        sub= "William the Conqueror to George VI", xlab="Monarchs",
+     ylab="Age at Death")
+
+plot.ts(birthsts, main ="Number of births per month in New York City",
+        ylab="Births")
+
+plot.ts(souvenirts, main="Bruce and Fiona Smyth Surf and Souvenirs",
+        sub ="Monthly Sales January 1987-December 1993", ylab = "$ AUS",
+         xlab = " ")
+
+plot.ts(raints, main="Rain in London")
+
+plot.ts(skirtsTS, main="Skirts")
+
+plot.ts(volcanodustTS, main="volcanic dust")
+
+```
+
+
+\newpage
+
+##Decomposing non-seasonal data
+
+kings  
+
+##Decomposing seasonal data
+
+births  
+
+###Seasonal adjusting
+
+births  
+
+
+
+##Forecasting using exponential smoothing
+
+###Simple exponential smoothing
+Forecasting for time series that can be described using an additive model with constant level and no seasonality  
+
+precip  
+
+
+###Holt's exponential smoothing  
+
+Forecasting for a time series that can be described using an additive model with increasing or decreasing trend and no
+seasonality  
+
+skirts  
+
+###Hold-Winters exponential smoothing  
+
+Forecasting for a time series that can be described using an additive model with increasing or decreasing trend and
+seasonality  
+
+souvenir  
+
+
+
+
+
+##ARIMA Models
+
+Exponential smoothing methods are useful for making forecasts, and make no assumptions about the correlations between successive values of the time series.
+However, if you want to make prediction intervals for forecasts made using exponential smoothing methods, the prediction intervals require that the forecast errors are uncorrelated and are normally distributed with mean zero and constant variance.  
+
+While exponential smoothing methods do not make any assumptions about correlations between successive values of the time series, in some cases you can make a better predictive model by taking correlations in the data into
+account.
+Autoregressive Integrated Moving Average (ARIMA) models include an explicit statistical model for the irregular component of a time series, that allows for non-zero autocorrelations in the irregular component.  
+
+###Differencing
+
+Using the “diff()” function until you obtain a stationary time series.
+
+Skirts  
+
+kings  
+
+###Select candidate ARMIA model
+
+kings  
+
+volcanic dust  
+
+
+###Forecasting using an ARIMA model
+
+kings  
+
+volcanic dust  
 
 
 
 
 
 
-##A First approach to time series modeling
+\newpage
 
-One intuitively appealing approach begins by simply observing a time series to be modeled.  For example, look at Australian Wine Sales.
+#Time Series Analyses
+
+Analysis of Australian Wine, Accidental Deaths, Lake Huron, and U.S. Strikes
+
+
+##Australian Wine Sales.
 
 ```{r echo=FALSE}
 library(itsmr)
@@ -123,24 +308,6 @@ plot(yr,wine, type="l",pch=20,main = "Australian Red Wine" , ylab="liters",xlab=
 ```
 
 In this plot, the trend and seasonality in the data are clear.  
-
-Out initial approach is view the time series as the sum of three additive components:
-
-$\mathbf{series}_t = \mathbf{trend}_t + \mathbf{seasonality}_t + \mathbf{noise}_t$
-
-in addition, however, you also see A plot of the data shows a clear trend.
-
-
-trend
-seasonality
-
-Sometimes you need to transform a time series
-
-identify and structural components -- trend and seasonality
-
-substracting these components from the series
-
-leaving noise which is then modeled.
 
 
 
@@ -212,11 +379,6 @@ rr1 <- strikes - rr
 plot(yr,rr1, type="l",pch=20,main = "Strikes in the U.S.A., 1951 -1980" )
 acf(rr1)
 ```
-
-
-
-
-
 
 
 
